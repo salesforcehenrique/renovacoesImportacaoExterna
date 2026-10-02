@@ -1,0 +1,1078 @@
+<template>
+
+    <lightning-card title="Importar Renovações" icon-name="standard:case">
+
+        <div class="component-container">
+
+            <!-- ===================================================== -->
+            <!-- LOADING                                               -->
+            <!-- ===================================================== -->
+
+            <template if:true={isLoading}>
+
+                <lightning-spinner alternative-text="Processando arquivo..." size="small">
+                </lightning-spinner>
+
+            </template>
+
+
+            <!-- ===================================================== -->
+            <!-- INTRODUÇÃO                                            -->
+            <!-- ===================================================== -->
+
+            <div class="component-intro">
+
+                <p class="slds-text-body_regular slds-text-color_weak">
+                    Importe, analise e revise as renovações antes de criar os Casos no Salesforce.
+                </p>
+
+            </div>
+
+
+            <!-- ===================================================== -->
+            <!-- PROGRESSO                                             -->
+            <!-- ===================================================== -->
+
+            <div class="progress-container">
+
+                <lightning-progress-indicator current-step={currentStep} type="base" variant="base">
+
+                    <lightning-progress-step label="Upload" value="1">
+                    </lightning-progress-step>
+
+                    <lightning-progress-step label="Análise" value="2">
+                    </lightning-progress-step>
+
+                    <lightning-progress-step label="Preview" value="3">
+                    </lightning-progress-step>
+
+                    <lightning-progress-step label="De/Para" value="4">
+                    </lightning-progress-step>
+
+                    <lightning-progress-step label="Confirmação" value="5">
+                    </lightning-progress-step>
+
+                </lightning-progress-indicator>
+
+            </div>
+
+
+            <!-- ===================================================== -->
+            <!-- ETAPA 1 - UPLOAD                                     -->
+            <!-- ===================================================== -->
+
+            <template if:true={isUploadStep}>
+
+                <section class="screen-section">
+
+                    <div class="section-heading">
+
+                        <div>
+
+                            <h2 class="section-title">
+                                Arquivo de renovações
+                            </h2>
+
+                            <p class="section-description">
+                                Selecione ou arraste o arquivo que será analisado.
+                            </p>
+
+                        </div>
+
+
+                        <lightning-icon icon-name="utility:upload" size="small" alternative-text="Upload">
+                        </lightning-icon>
+
+                    </div>
+
+
+                    <!--
+                        UPLOADER NATIVO SALESFORCE.
+                        NÃO ALTERAR.
+                    -->
+
+                    <div class="native-upload-container">
+
+                        <lightning-icon icon-name="utility:file" size="medium" alternative-text="Arquivo">
+                        </lightning-icon>
+
+
+                        <div class="native-upload-control">
+
+                            <lightning-input type="file" label="Selecionar arquivo" variant="label-hidden"
+                                accept=".csv,.xlsx" onchange={handleFileChange}>
+                            </lightning-input>
+
+                        </div>
+
+
+                        <p class="upload-help">
+                            Arquivos aceitos: CSV e XLSX
+                        </p>
+
+                    </div>
+
+
+                    <!-- ERRO -->
+
+                    <template if:true={errorMessage}>
+
+                        <div class="slds-notify
+                                   slds-notify_alert
+                                   slds-theme_error
+                                   slds-m-top_medium" role="alert">
+
+                            <lightning-icon icon-name="utility:error" variant="inverse" size="x-small"
+                                class="slds-m-right_small">
+                            </lightning-icon>
+
+                            <span>
+                                {errorMessage}
+                            </span>
+
+                        </div>
+
+                    </template>
+
+
+                    <!-- ARQUIVO CARREGADO -->
+
+                    <template if:true={hasFile}>
+
+                        <div class="file-loaded-card">
+
+                            <div class="file-loaded-main">
+
+                                <div class="file-loaded-icon">
+
+                                    <lightning-icon icon-name="doctype:csv" size="small" alternative-text="Arquivo">
+                                    </lightning-icon>
+
+                                </div>
+
+
+                                <div>
+
+                                    <div class="file-loaded-name">
+                                        {fileName}
+                                    </div>
+
+                                    <div class="file-loaded-meta">
+                                        {fileFormatLabel} · {fileSizeLabel}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            <lightning-icon icon-name="utility:success" variant="success" size="small"
+                                alternative-text="Arquivo processado">
+                            </lightning-icon>
+
+                        </div>
+
+
+                        <div class="screen-footer">
+
+                            <div class="footer-message">
+
+                                <lightning-icon icon-name="utility:info" size="xx-small" class="slds-m-right_x-small">
+                                </lightning-icon>
+
+                                Nenhum registro foi gravado no Salesforce.
+
+                            </div>
+
+
+                            <lightning-button label="Analisar arquivo" variant="brand" icon-name="utility:search"
+                                onclick={handleGoToAnalysis}>
+                            </lightning-button>
+
+                        </div>
+
+                    </template>
+
+                </section>
+
+            </template>
+
+
+            <!-- ===================================================== -->
+            <!-- ETAPA 2 - ANÁLISE                                    -->
+            <!-- ===================================================== -->
+
+            <template if:true={isAnalysisStep}>
+
+                <section>
+
+                    <div class="section-heading">
+
+                        <div>
+
+                            <h2 class="section-title">
+                                Análise do arquivo
+                            </h2>
+
+                            <p class="section-description">
+                                Confira a estrutura e a distribuição dos registros antes de visualizar os dados.
+                            </p>
+
+                        </div>
+
+
+                        <lightning-icon icon-name="utility:chart" size="small" alternative-text="Análise">
+                        </lightning-icon>
+
+                    </div>
+
+
+                    <!-- ================================================= -->
+                    <!-- ABA ANALISADA                                     -->
+                    <!-- ================================================= -->
+
+                    <template if:true={selectedSheetName}>
+
+                        <div class="sheet-info">
+
+                            <span class="sheet-info-label">
+                                Aba analisada:
+                            </span>
+
+                            <span class="sheet-info-value">
+                                {selectedSheetName}
+                            </span>
+
+                        </div>
+
+                    </template>
+
+
+                    <!-- ================================================= -->
+                    <!-- KPIS                                              -->
+                    <!-- ================================================= -->
+
+                    <div class="kpi-grid">
+
+
+                        <!-- REGISTROS -->
+
+                        <article class="kpi-card">
+
+                            <div class="kpi-top">
+
+                                <span class="kpi-label">
+                                    REGISTROS
+                                </span>
+
+
+                                <span class="kpi-icon">
+
+                                    <lightning-icon icon-name="utility:list" size="small" alternative-text="Registros">
+                                    </lightning-icon>
+
+                                </span>
+
+                            </div>
+
+
+                            <div class="kpi-value">
+                                {totalRowCount}
+                            </div>
+
+                        </article>
+
+
+                        <!-- CAMPOS OBRIGATÓRIOS -->
+
+                        <article class={requiredCardClass}>
+
+                            <div class="kpi-top">
+
+                                <span class="kpi-label">
+                                    CAMPOS OBRIGATÓRIOS
+                                </span>
+
+
+                                <span class="kpi-icon kpi-icon-success">
+
+                                    <lightning-icon icon-name="utility:success" size="small"
+                                        alternative-text="Obrigatórios">
+                                    </lightning-icon>
+
+                                </span>
+
+                            </div>
+
+
+                            <div class="kpi-value kpi-value-text">
+                                {requiredDetectionLabel}
+                            </div>
+
+                        </article>
+
+                    </div>
+
+
+                    <!-- ================================================= -->
+                    <!-- DISTRIBUIÇÕES                                     -->
+                    <!-- ================================================= -->
+
+                    <div class="distribution-grid">
+
+
+                        <!-- ============================================= -->
+                        <!-- SEGURADORAS                                  -->
+                        <!-- ============================================= -->
+
+                        <article class="distribution-card distribution-card-seguradora">
+
+                            <div class="distribution-header">
+
+                                <div>
+
+                                    <h3 class="distribution-title">
+                                        Registros por seguradora
+                                    </h3>
+
+                                    <p class="distribution-subtitle">
+                                        Distribuição da carga entre as seguradoras.
+                                    </p>
+
+                                </div>
+
+
+                                <template if:true={hasSeguradoraDistribution}>
+
+                                    <lightning-badge label={seguradoraSummaryLabel}>
+                                    </lightning-badge>
+
+                                </template>
+
+                            </div>
+
+
+                            <template if:true={hasSeguradoraDistribution}>
+
+                                <div class="distribution-list">
+
+                                    <template for:each={seguradoraDistribution} for:item="item">
+
+                                        <div key={item.key} class="distribution-row">
+
+                                            <span class="distribution-name" title={item.label}>
+
+                                                {item.label}
+
+                                            </span>
+
+
+                                            <span class="distribution-count">
+                                                {item.count}
+                                            </span>
+
+                                        </div>
+
+                                    </template>
+
+                                </div>
+
+                            </template>
+
+
+                            <template if:false={hasSeguradoraDistribution}>
+
+                                <div class="distribution-empty">
+
+                                    <lightning-icon icon-name="utility:info" size="xx-small"
+                                        class="slds-m-right_x-small">
+                                    </lightning-icon>
+
+                                    Seguradora não identificada no arquivo.
+
+                                </div>
+
+                            </template>
+
+                        </article>
+
+
+                        <!-- ============================================= -->
+                        <!-- IMOBILIÁRIAS                                 -->
+                        <!-- ============================================= -->
+
+                        <article class="distribution-card distribution-card-imobiliaria">
+
+                            <div class="distribution-header">
+
+                                <div>
+
+                                    <h3 class="distribution-title">
+                                        Registros por imobiliária
+                                    </h3>
+
+                                    <p class="distribution-subtitle">
+                                        Quantidade de renovações associadas a cada imobiliária.
+                                    </p>
+
+                                </div>
+
+
+                                <template if:true={hasImobiliariaDistribution}>
+
+                                    <lightning-badge label={imobiliariaSummaryLabel}>
+                                    </lightning-badge>
+
+                                </template>
+
+                            </div>
+
+
+                            <template if:true={hasImobiliariaDistribution}>
+
+                                <div class="distribution-list">
+
+                                    <template for:each={imobiliariaDistribution} for:item="item">
+
+                                        <div key={item.key} class="distribution-row">
+
+                                            <span class="distribution-name" title={item.label}>
+
+                                                {item.label}
+
+                                            </span>
+
+
+                                            <span class="distribution-count">
+                                                {item.count}
+                                            </span>
+
+                                        </div>
+
+                                    </template>
+
+                                </div>
+
+                            </template>
+
+
+                            <template if:false={hasImobiliariaDistribution}>
+
+                                <div class="distribution-empty">
+
+                                    <lightning-icon icon-name="utility:info" size="xx-small"
+                                        class="slds-m-right_x-small">
+                                    </lightning-icon>
+
+                                    Imobiliária sem dados na planilha.
+
+                                </div>
+
+                            </template>
+
+                        </article>
+
+
+                        <!-- ============================================= -->
+                        <!-- RENOVAÇÕES POR MÊS                           -->
+                        <!-- ============================================= -->
+
+                        <article class="distribution-card distribution-card-mes">
+
+                            <div class="distribution-header">
+
+                                <div>
+
+                                    <h3 class="distribution-title">
+                                        Renovações por mês
+                                    </h3>
+
+                                    <p class="distribution-subtitle">
+                                        Distribuição baseada na Data Fim Vigência.
+                                    </p>
+
+                                </div>
+
+
+                                <template if:true={hasMonthDistribution}>
+
+                                    <lightning-badge label={monthSummaryLabel}>
+                                    </lightning-badge>
+
+                                </template>
+
+                            </div>
+
+
+                            <template if:true={hasMonthDistribution}>
+
+                                <div class="distribution-list">
+
+                                    <template for:each={monthDistribution} for:item="item">
+
+                                        <div key={item.key} class="distribution-row">
+
+                                            <span class="distribution-name" title={item.label}>
+
+                                                {item.label}
+
+                                            </span>
+
+
+                                            <span class="distribution-count">
+                                                {item.count}
+                                            </span>
+
+                                        </div>
+
+                                    </template>
+
+                                </div>
+
+                            </template>
+
+
+                            <template if:false={hasMonthDistribution}>
+
+                                <div class="distribution-empty">
+
+                                    <lightning-icon icon-name="utility:info" size="xx-small"
+                                        class="slds-m-right_x-small">
+                                    </lightning-icon>
+
+                                    {monthDistributionMessage}
+
+                                </div>
+
+                            </template>
+
+                        </article>
+
+                    </div>
+
+
+                    <!-- ================================================= -->
+                    <!-- ALERTA                                           -->
+                    <!-- ================================================= -->
+
+                    <template if:true={hasMissingRequiredMappings}>
+
+                        <div class="slds-notify
+                                   slds-notify_alert
+                                   slds-theme_warning
+                                   analysis-alert" role="alert">
+
+                            <lightning-icon icon-name="utility:warning" size="x-small" class="slds-m-right_small">
+                            </lightning-icon>
+
+                            <span>
+
+                                Não foi possível identificar automaticamente:
+                                <strong>{missingRequiredLabels}</strong>.
+                                O ajuste poderá ser feito na etapa De/Para.
+
+                            </span>
+
+                        </div>
+
+                    </template>
+
+
+                    <template if:false={hasMissingRequiredMappings}>
+
+                        <div class="slds-notify
+                                   slds-notify_alert
+                                   slds-theme_success
+                                   analysis-alert" role="status">
+
+                            <lightning-icon icon-name="utility:success" variant="inverse" size="x-small"
+                                class="slds-m-right_small">
+                            </lightning-icon>
+
+                            <span>
+                                Todos os campos obrigatórios possuem uma correspondência sugerida.
+                            </span>
+
+                        </div>
+
+                    </template>
+
+
+                    <!-- ================================================= -->
+                    <!-- COLUNAS ENCONTRADAS                               -->
+                    <!-- ================================================= -->
+
+                    <div class="columns-panel">
+
+                        <div class="columns-panel-header">
+
+                            <div>
+
+                                <h3 class="columns-title">
+                                    Colunas encontradas
+                                </h3>
+
+                                <p class="columns-description">
+                                    Estrutura identificada no arquivo selecionado.
+                                </p>
+
+                            </div>
+
+
+                            <lightning-badge label={columnsBadgeLabel}>
+                            </lightning-badge>
+
+                        </div>
+
+
+                        <div class="columns-badges">
+
+                            <template for:each={headers} for:item="header">
+
+                                <lightning-badge key={header.key} label={header.label} class="column-badge">
+                                </lightning-badge>
+
+                            </template>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="screen-footer">
+
+                        <lightning-button label="Voltar" icon-name="utility:back" onclick={handleBackToUpload}>
+                        </lightning-button>
+
+
+                        <lightning-button label="Visualizar registros" variant="brand" icon-name="utility:preview"
+                            onclick={handleGoToPreview}>
+                        </lightning-button>
+
+                    </div>
+
+                </section>
+
+            </template>
+
+
+            <!-- ===================================================== -->
+            <!-- ETAPA 3 - PREVIEW                                    -->
+            <!-- ===================================================== -->
+
+            <template if:true={isPreviewStep}>
+
+                <section>
+
+                    <div class="section-heading">
+
+                        <div>
+
+                            <h2 class="section-title">
+                                Preview do arquivo
+                            </h2>
+
+                            <p class="section-description">
+                                Os dados abaixo refletem diretamente as colunas encontradas no arquivo.
+                            </p>
+
+                        </div>
+
+
+                        <lightning-badge label={previewLabel}>
+                        </lightning-badge>
+
+                    </div>
+
+
+                    <div class="datatable-container">
+
+                        <lightning-datatable key-field="_rowId" data={previewRows} columns={previewColumns}
+                            hide-checkbox-column column-widths-mode="auto">
+                        </lightning-datatable>
+
+                    </div>
+
+
+                    <div class="screen-footer">
+
+                        <lightning-button label="Voltar para análise" icon-name="utility:back"
+                            onclick={handleBackToAnalysis}>
+                        </lightning-button>
+
+
+                        <lightning-button label="Continuar para De/Para" variant="brand" icon-name="utility:forward"
+                            onclick={handleGoToMapping}>
+                        </lightning-button>
+
+                    </div>
+
+                </section>
+
+            </template>
+
+
+            <!-- ===================================================== -->
+            <!-- ETAPA 4 - DE/PARA                                    -->
+            <!-- ===================================================== -->
+
+            <template if:true={isMappingStep}>
+
+                <section>
+
+                    <div class="mapping-toolbar">
+
+                        <div>
+
+                            <h2 class="section-title">
+                                De/Para
+                            </h2>
+
+                            <p class="section-description">
+                                Relacione os campos do processo às colunas reais do arquivo.
+                            </p>
+
+                        </div>
+
+
+                        <lightning-badge label={mappingProgressLabel}>
+                        </lightning-badge>
+
+                    </div>
+
+
+                    <div class="mapping-file">
+
+                        <lightning-icon icon-name="doctype:csv" size="small" alternative-text="Arquivo">
+                        </lightning-icon>
+
+
+                        <div>
+
+                            <div class="mapping-file-name">
+                                {fileName}
+                            </div>
+
+                            <div class="mapping-file-meta">
+                                {headerCount} colunas · {totalRowCount} registros
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="mapping-list">
+
+                        <div class="mapping-header">
+
+                            <span>
+                                Campo do processo
+                            </span>
+
+                            <span>
+                                Coluna do arquivo
+                            </span>
+
+                        </div>
+
+
+                        <template for:each={mappingRows} for:item="row">
+
+                            <div key={row.apiName} class={row.rowClass}>
+
+                                <div class="mapping-target">
+
+                                    <span class="mapping-status">
+
+                                        <template if:true={row.isMapped}>
+
+                                            <lightning-icon icon-name="utility:success" variant="success" size="x-small"
+                                                alternative-text="Mapeado">
+                                            </lightning-icon>
+
+                                        </template>
+
+
+                                        <template if:true={row.isDuplicate}>
+
+                                            <lightning-icon icon-name="utility:warning" variant="warning" size="x-small"
+                                                alternative-text="Duplicado">
+                                            </lightning-icon>
+
+                                        </template>
+
+
+                                        <template if:true={row.isPending}>
+
+                                            <span class="status-pending">
+                                            </span>
+
+                                        </template>
+
+                                    </span>
+
+
+                                    <div>
+
+                                        <div class="mapping-label">
+
+                                            <span>
+                                                {row.label}
+                                            </span>
+
+
+                                            <template if:true={row.required}>
+
+                                                <span class="required-mark">
+                                                    *
+                                                </span>
+
+                                            </template>
+
+
+                                            <template if:false={row.required}>
+
+                                                <span class="tag">
+                                                    Opcional
+                                                </span>
+
+                                            </template>
+
+
+                                            <template if:true={row.isSuggested}>
+
+                                                <span class="tag tag-suggested">
+                                                    Sugerido
+                                                </span>
+
+                                            </template>
+
+                                        </div>
+
+
+                                        <div class="mapping-description">
+                                            {row.description}
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="mapping-source">
+
+                                    <lightning-combobox name={row.apiName} label={row.label} variant="label-hidden"
+                                        value={row.value} options={row.options} placeholder={row.placeholder}
+                                        data-field={row.apiName} onchange={handleMappingChange}>
+                                    </lightning-combobox>
+
+
+                                    <template if:true={row.hint}>
+
+                                        <div class={row.hintClass}>
+                                            {row.hint}
+                                        </div>
+
+                                    </template>
+
+                                </div>
+
+                            </div>
+
+                        </template>
+
+                    </div>
+
+
+                    <div class="mapping-footer">
+
+                        <lightning-button label="Voltar ao preview" icon-name="utility:back"
+                            onclick={handleBackToPreview}>
+                        </lightning-button>
+
+
+                        <div class="mapping-footer-action">
+
+                            <span class={mappingStatusClass}>
+                                {mappingStatusLabel}
+                            </span>
+
+
+                            <lightning-button label="Revisar confirmação" variant="brand" icon-name="utility:check"
+                                disabled={isConfirmationDisabled} onclick={handleGoToConfirmation}>
+                            </lightning-button>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+            </template>
+
+
+            <!-- ===================================================== -->
+            <!-- ETAPA 5 - CONFIRMAÇÃO                                -->
+            <!-- ===================================================== -->
+
+            <template if:true={isConfirmationStep}>
+
+                <section>
+
+                    <div class="section-heading">
+
+                        <div>
+
+                            <h2 class="section-title">
+                                Confirmação
+                            </h2>
+
+                            <p class="section-description">
+                                Revise o resultado da validação antes de confirmar a importação.
+                            </p>
+
+                        </div>
+
+
+                        <lightning-icon icon-name="utility:check" size="small" alternative-text="Confirmação">
+                        </lightning-icon>
+
+                    </div>
+
+
+                    <div class="confirmation-grid">
+
+                        <article class="confirmation-card">
+
+                            <div class="confirmation-label">
+                                TOTAL
+                            </div>
+
+                            <div class="confirmation-value">
+                                {totalRowCount}
+                            </div>
+
+                        </article>
+
+
+                        <article class="confirmation-card confirmation-card-success">
+
+                            <div class="confirmation-label">
+                                VÁLIDOS
+                            </div>
+
+                            <div class="confirmation-value">
+                                {validRowCount}
+                            </div>
+
+                        </article>
+
+
+                        <article class="confirmation-card confirmation-card-warning">
+
+                            <div class="confirmation-label">
+                                INVÁLIDOS
+                            </div>
+
+                            <div class="confirmation-value">
+                                {invalidRowCount}
+                            </div>
+
+                        </article>
+
+                    </div>
+
+
+                    <template if:true={hasInvalidRows}>
+
+                        <div class="slds-notify
+                                   slds-notify_alert
+                                   slds-theme_warning
+                                   confirmation-alert" role="alert">
+
+                            <lightning-icon icon-name="utility:warning" size="x-small" class="slds-m-right_small">
+                            </lightning-icon>
+
+                            <span>
+                                Existem linhas inválidas. Consulte a coluna Erros antes de prosseguir.
+                            </span>
+
+                        </div>
+
+                    </template>
+
+
+                    <template if:false={hasInvalidRows}>
+
+                        <div class="slds-notify
+                                   slds-notify_alert
+                                   slds-theme_success
+                                   confirmation-alert" role="status">
+
+                            <lightning-icon icon-name="utility:success" variant="inverse" size="x-small"
+                                class="slds-m-right_small">
+                            </lightning-icon>
+
+                            <span>
+                                Todos os registros analisados estão válidos.
+                            </span>
+
+                        </div>
+
+                    </template>
+
+
+                    <div class="datatable-container">
+
+                        <lightning-datatable key-field="_rowId" data={confirmationPreviewRows}
+                            columns={confirmationColumns} hide-checkbox-column column-widths-mode="auto">
+                        </lightning-datatable>
+
+                    </div>
+
+
+                    <div class="commit-info">
+
+                        <lightning-icon icon-name="utility:lock" size="small" class="slds-m-right_small">
+                        </lightning-icon>
+
+
+                        <div>
+
+                            <div class="commit-info-title">
+                                Nenhum registro foi gravado
+                            </div>
+
+                            <div class="commit-info-description">
+                                A persistência dos Casos será conectada de forma isolada na camada de backend da
+                                importação.
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="screen-footer">
+
+                        <lightning-button label="Voltar ao De/Para" icon-name="utility:back"
+                            onclick={handleBackToMapping}>
+                        </lightning-button>
+
+
+                        <lightning-button label="Confirmar importação" variant="brand" icon-name="utility:check"
+                            disabled>
+                        </lightning-button>
+
+                    </div>
+
+                </section>
+
+            </template>
+
+        </div>
+
+    </lightning-card>
+
+</template>
